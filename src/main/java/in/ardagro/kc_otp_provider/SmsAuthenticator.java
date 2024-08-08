@@ -1,6 +1,8 @@
 package in.ardagro.kc_otp_provider;
 
 import java.util.Locale;
+
+import org.apache.commons.lang3.StringUtils;
 import org.keycloak.authentication.AuthenticationFlowContext;
 import org.keycloak.authentication.AuthenticationFlowError;
 import org.keycloak.authentication.Authenticator;
@@ -17,6 +19,7 @@ import org.keycloak.theme.Theme;
 import jakarta.ws.rs.core.Response;
 public class SmsAuthenticator implements Authenticator{
     private static final String MOBILE_NUMBER_FIELD = "mobile_number";
+	private static final String USE_TEMP_OTP_FIELD = "temp_otp";
     private static final String TPL_CODE = "login-sms.ftl";
 
     
@@ -25,15 +28,24 @@ public class SmsAuthenticator implements Authenticator{
         System.out.println("****************INSIDE AUTHENTICATE**************************");
       AuthenticatorConfigModel config = context.getAuthenticatorConfig();
 		KeycloakSession session = context.getSession();
-		UserModel user = context.getSession().users().getUserByUsername(context.getRealm(), "test");
-
-		String mobileNumber = "9175673254"+user.getFirstName();//user.getFirstAttribute(MOBILE_NUMBER_FIELD);
-		// mobileNumber of course has to be further validated on proper format, country code, ...
+		//UserModel user = context.getSession().users().getUserByUsername(context.getRealm(), "test");
+		UserModel user = context.getUser();
+		String mobileNumber = user.getFirstAttribute(MOBILE_NUMBER_FIELD);
+		if(StringUtils.isEmpty(mobileNumber)){
+			System.out.println(String.format("##EMPTY MOBLE NO FOR USER : %s ",user.getUsername() ));
+		}
 
 		int length = Integer.parseInt(config.getConfig().get(SmsConstants.CODE_LENGTH));
 		int ttl = Integer.parseInt(config.getConfig().get(SmsConstants.CODE_TTL));
+		String tempOTp = user.getFirstAttribute(USE_TEMP_OTP_FIELD);
+		String code ="";
+		if(StringUtils.isNotEmpty(tempOTp)){
+			System.out.println(String.format("##FOUND TEMP OTP : %s ", tempOTp));
+			code = tempOTp;
+		} else {
+			code = SecretGenerator.getInstance().randomString(length, SecretGenerator.DIGITS);
+		}
 
-		String code = SecretGenerator.getInstance().randomString(length, SecretGenerator.DIGITS);
 		AuthenticationSessionModel authSession = context.getAuthenticationSession();
 		authSession.setAuthNote(SmsConstants.CODE, code);
 		authSession.setAuthNote(SmsConstants.CODE_TTL, Long.toString(System.currentTimeMillis() + (ttl * 1000L)));

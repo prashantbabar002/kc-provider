@@ -45,8 +45,6 @@ public class SmsAuthenticatorFactory implements AuthenticatorFactory{
 
     @Override
     public String getDisplayType() {
-        String message = "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n--------------INSIDE---------------------------\n\n\n\n";
-        System.out.println(message);
         return "My Bogie OTP AUTH";
     }
 
